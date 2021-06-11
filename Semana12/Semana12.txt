@@ -1,0 +1,84 @@
+Júlio Ferreira Soares Filho
+11111EMT010
+
+1.
+	1. Desativar o Acesso por Senha em Servidores SSH
+O acesso por senha em servidores SSH não é inseguro. Ambos os métodos, chave de certificação e senha, possuem algumas vulnerabilidades que podem ser exploradas. No entanto o login com uso de senhas é similar ao uso de https.
+A vantagem da chave de certificação é a conveniência além de reduzir a chance de erro humano em comparação com o uso de senha.
+
+	2. Desativar o Login com Privilégios Root
+Partindo do princípio de que qualquer entidade deve ter privilégios suficientes apenas para realização de sua função o acesso ao superusuário deveria ser limitado. Para uso pessoal muitas vezes não é necessário privilégios de administrador, o que não é verdade para gerenciamento de um servidor. Em geral é necessário comandos de superuser para se operar um servidor.
+Pode-se fazer com que os usuários realizem comandos sudo sem logarem como root, no entanto do ponto de vista de segurança não há diferença entre essas duas abordagens.
+Um exemplo de como explorar o uso de comandos sudo é com um script utilizando o comando alias. O resultado é uma mescla de function overload com code injection aonde ao se chamar o comando sudo, os comandos do script são realizados.
+
+	3. Trocar as Portas de SSH Padrão
+Trocar as portas de ssh em si não melhora a segurança uma vez que essas portas vão ser descobertas e então o que realmente é relevante são os protocolos de segurança da conexão.
+Embora em quais portas o servidor escuta não determine o nível de segurança, portas mais exóticas podem ajudar na detecção de atividades anormais e é suficiente para evitar algumas tentativas preguiçosas.
+Alguns escaneadores buscam apenas as portas mais comuns (nmap por exemplo busca 1667), um número que chama a atenção, mas que ainda assim mais sútil que testar todas as 65536. A ferramenta de segurança crucial no entanto não sãos as portas mas o Sistema de Detecção de Intrusão (ISD) e o tipo de escaneador utilizado.
+Consultando o vídeo e as fontes bibliográficas minha opinião é que o valor do em se trocar as portas é superestimado. O ganho em segurança é marginal e dependente de outras medidas e ferramentas. O conceito de segurança por obscuridade é falho, mas ainda assim quanto menos informação sobre o sistema em particular estiver disponível melhor (Aqui é interessante fazer uma distinção: sistemas open source genéricos são mais seguros pois são exaustivamente testados, no entanto é desejável que as informações de sua implementação particular de tal sistema não sejam facilmente acessíveis).
+
+	4. Desativar Ipv6 para SSH
+Alguém teve a idéia de que Ipv6 é menos seguro porque tem mais hackers (??). Não faz o menor sentido uma vez que a maioria do tráfego ocorre via IPv4 e em geral sistemas mais populares tendem a ser mais visados (android e windows por exemplo).
+Fazer o servidor escutar apenas em IPv4 pode ter duas vantagens: uma que é necessário se preocupar apenas com a segurança de um tipo de protocolo e a segunda, em teoria, é mais dispendioso realizar ataques em IPv4.
+São levantadas também duas hipóteses. A primeira é de que um firewall mal configurado seria o responsável pelas vulnerabilidades do IPv6. A outra é que como o IPv6 é incomum, um servidor que escute apenas em IPv6 evitaria grande parte dos ataques.
+
+	5. Configurar um Firewall Básico
+Um servidor escuta em algumas portas e apenas nessas portas, as outras portas são ignoradas. Além disso o servidor não sabe quem ele vai escutar (pelo menos não a priori). Sendo assim a firewall que especifica quais portas aceitam comunicação e quais tipos de pacote aceitar é redundante em um servidor genérico para propósitos de aumentar segurança.
+A utilidade de firewalls customizadas está em situações em que se tem uma lista restrita de entidades autorizadas à realizar comunicação.
+
+	6. Não Utilizar o Auto-Update
+Embora o auto-update possa parecer conveniente do ponto de vista de segurança ele não é complemente necessário devido à alguns fatores.
+Raramente existe algum update de segurança realmente significativo e quanto alguma falha de crítica de segurança é detectada não se espera o auto-update e sim é realizado um patch manual para correção da falha.
+O auto-update é disruptivo para o servidor, podendo interromper o serviço em momentos inoportunos.
+Existe também o problema de que o fabricante pode não fazer um patch de qualidade.
+Por exemplo, em alguns notebooks dell um update do driver de vídeo (que não creio ter sido consertado até hoje) fazia com que o laptop entrasse em um loop infinito durante o processo de shutdown (se não engano durante a fase aonde os processos dos drivers são finalizados). Isso acontecia em notebooks com placa radeon e cpu intel, e novamente se não me engano, a partir do driver 16.7.3 e a única solução era manter o driver na versão 16.7.2. Interessante notar que nenhuma das sugestões apresentadas realmente funciona. Outra coisa interessante é que esse bug também afetava sistemas linux.
+Segue um link da descrição do problema:
+https://www.dell.com/community/Inspiron/Problem-with-INSPIRON-15R-5537-AMD-RADEON-HD-8850M-DRIVER/td-p/7574582
+Minha opinião sobre os auto-updates é não consertar o que não está quebrado.
+
+
+2.
+	a. Considerando que eu não sei qual a capacidade computacional disponível, nem qual tipo de hardware eu estou utilizando.
+	A primeira sugestão seria guardar duas tabelas. A primeira tabela chaves de criptografia AES. A senha chega por algum canal seguro e é removida a criptografia do protocolo, em seguida é realizada uma segunda criptografia AES. Com a senha encriptada é gerada uma hash. Essas hashs são armazenadas em uma segunda tabela e são elas que servem para fazer a validação da senha. Com esse método as senhas não ficam realmente armazenadas no sistema e são necessárias duas partes (a senha e a chave de encriptação) para realizar a validação.
+	O sistema pode ser melhorado com criptografia assimétrica. Uma chave pública é disponibilizada e no entanto a chave privada é esquecida. A informação enviada para o servidor é uma senha criptografada assimetricamente e o servidor enxerga essa como sendo a senha do usuário. É importante que a criptografia seja assimétrica pois é a única forma de se realizar criptografia sem conhecimento de uma chave de descriptografar. Além disso a criptografia evita os problemas das hash de colisão e preenchimento, uma vez que possuem tamanho variável.
+	Em seguida são realizados os mesmos procedimentos do primeiro método. O esforço do lado do servidor é o mesmo uma vez que a criptografia assimétrica acontece do lado do cliente. No entanto esse método apresenta a vantagem de que em momento algum o servidor possui conhecimento da senha em plain text do cliente o que aumenta a segurança e a privacidade. Dependendo do nível de paranóia, em vez de uma chave pública única cada cliente pode possuir sua própria chave e seria necessária uma terceira tabela.
+	Resumindo:
+	A criptogrofia assimétrica realizado pelo cliente serve para que o sistema não saiba qual é a senha em plain text.
+	A criptografia do protocolo de segurança  garante que a informação seja transmitida de forma segura
+	A criptografia AES faz com que ataques por dicionário sejam ineficazes sem a chave. Além disso faz com que sejam necessárias duas informações para autenticação (chave AES e senha)
+	Finalmente a hash realiza a verificação.
+	Vetores de inicialização e repetição do uso de algoritmos também podem ser utilizados.
+
+	b. A criptografia é o método de alterar uma informação com a finalidade de ocultar seu significado.
+	A criptografia simétrica é são os métodos em que a mesma chave é utilizada tanto criptografar quanto para descriptografar a mensagem. Temos como exemplo as cifras de substituição monoalfabéticas (como a cifra de caesar, algumas cifras utilizadas pelos maçons, dentre outras; vulneráveis a análise por frequência), cifras polialfabéticas (cifra vinégere, a própria máquina enigma é uma versão melhorada de uma cifra polialfabética), cifras por livros (cifra de Beale por exemplo), cifras de transposição, etc.
+	O maior problema da criptografia simétrica está na distribuição de chaves. Como transmitir de forma segura a informação que é utilizada para descriptografar a informação. Esse problema levou ao desenvolvimento das técnicas de criptografia assimétricas.
+	A grande vantagem da criptografia simétrica é a sua economia computacional em relação à assimétrica, tanto que protocolos utilizam esta apenas para transmitir a chave simétrica utilizada durante a comunicação.
+
+	c. Uma hash é uma one way function (função que realiza uma transformação, mas que não pode ser invertida) que transforma informação (qualquer informação, números, strings, arquivos, executáveis) em um número com uma quantidade fixa de dígitos. Dificilmente dois arquivos diferentes irão possuir a mesma hash (o que é diferente de falar que a hash é única). Devido a essa propriedade hashs são utilizadas para fazer validação (de uma senha, arquivo, etc.). Se o arquivo tiver sido alterado então sua hash não será válida. Hashs por serem one-way functions em geral envolvem álgebra modular.
+	Sistemas de criptografia por sua vez também transformam informação. No entanto o objetivo agora é ocultar o conteúdo e posteriormente recuperá-lo. Não interessa também que o conteúdo seja diferente para duas mensagens, apenas que ele possa ser decriptografado.
+
+3.
+	a. Criptografia é utilizada para garantir a integridade das transações e dos blocos. As hashs funcionam para verificar se alguém conseguiu a posse de determinado bloco.
+	b. O https é comunicação http (protocolo de aplicação) que é realizado sobre um protocolo de transporte seguro (TSL ou SSL). SSL e TSL possuem estruturas parecidas.
+	Primeiro existe um protocolo de handshake. Os participantes escolhem serão os algoritmos de criptografia (simétrica para trnasmissão de dados, assimétricas para trasmissão das chaves), hash (autenticação da integridade dos dados) e compactação utilizados (não relacionado à segurança, mas é conveniente ser realizado nessa camada).
+	As HMACs são usadas usando chaves diferentes para cada usuária, também são necessárias duas chaves para confiabilidade e dois vetores de inicialização. Assim TSL requer um total de 6 chaves. As chaves são derivadas de uma chave mestra compartilhada de 384 bits que é derivada da chave da sessão.
+	Terminado o protocolo de handshake a comunicação pode começar e é realizado o protocolo de registro. Ele atua sobre as mensagens da camada de aplicação.
+	As mensagens entregues são fragmentadas em blocos de forma conveniente para as próximas etapas. Protegidas com um HMAC. Cifradas com um algoritmo simétrico e finalmente repassadas a camada inferior.
+	O TSL também permite que sessões possam ser retomadas durante o protocolo de handshake se o servidor tiver armazenado os dados da última sessão e permitir esse tipo de acesso.
+
+	c. Um certificado digital é um documento eletrônico, geralmente utilizado para provar a posse de determinada chave pública. Eles funcionam a partir de uma infraestrutura de chaves públicas aonde uma ou mais autentidades certificadores (AC) conseguem verificar a posse ou identidade de determinado documento, chave, ou pessoa.
+	 No Brasil a infraestrutura de chaves públicas utilizadas é o ICP-Brasil. A principal autoridade é o Instituto Nacional de Tecnologia e Informação (ITI). O cadeia de confiança possui uma raiz única, seguida de Autoridades Certificadores(AC), Autoridades de Regitro vinculadas às ACs e Autoridades Certificadoras de Tempo. Cada certificado consiste de uma chave pública e uma chave privada que permitem a identificação de determinada pessoa física ou jurídica.
+
+Bibliografia
+
+	The Code Book - Simon Singh
+		Livro introdutório e simples sobre criptografia e sua história.
+		Dentre os conteúdos estão cifras monoalfabéticas, cifras polialfabéticas, análise de frequência, a máquina enigma, o problema da distribuição da chave e criptografia assimétrica.
+	Segurança de Computadores e Invasão - Alfred Basta, Nadine Basta, Mary Brown
+		Livro sobre segurança e pen test. Apresenta as várias vulnerabilidades dos sistemas e as formas de serem exploradas.
+	Rede de Computadores - Larry Peterson, Bruce Davis
+	https://nmap.org/book/
+	https://en.wikipedia.org/wiki/Public_key_certificate
+	https://pt.wikipedia.org/wiki/ICP-BRASIL
+	https://es.wikipedia.org/wiki/Certificado_digital
+	https://www.docusign.com.br/blog/padroes-de-assinatura-digital-o-que-e-a-icp-brasil
