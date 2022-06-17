@@ -1,0 +1,13 @@
+
+1.Qual o limite de bytes a serem enviados por pacotes TCP e UDP?
+Nos programas apresentados foi estabelido um limite de 1024 bytes por pacote.
+UDP e TCP podem ter no máximo carregar 64 kB por pacote (desconsiderando cabeçalhos), mas o tamanhos dos pacotes é limitado pelo MTU. Em ethernet por exemplo o máximo MTU é 1500 bytes.
+
+2) Como um arquivo grande pode ser transmitido via internet?
+O arquivo é quebrado em várias partes e cada parte é enviada e remontada no remetente. Como o protocolo TCP é confiável cada pacote é confirmado pelo recipiente podendo o arquivo ser montado em ordem com pacotes sendo enviados na mesma conexão.
+No UDP não existe conexão, então surge o problema da ordem com que os pacotes chegam no remetente (pacotes enviados depois podem chegar primeiro) e também o problema que pacotes podem se perder no caminho. Soluções para esse problema geralmente envolvem implementar algum tipo de confibialidade ao serviço UDP ao nível de aplicação.
+
+3) Qual a diferença entre as implementações TCP e UDP para esse problema?
+Nessa implementação o servidor TCP escuta em duas portas e o cliente conecta em duas portas: uma para transmitir o nome do arquivo e outra para transmitir os dados do arquivo.
+No caso do UDP é utilizado o algoritmo do avestruz e o servidor simplesmente acredita que não houve qualquer tipo de problema na transmissão (pacotes chegarem em ordem diferente, perda de pacotes). A única medida para se evitar problemas é um sleep no loop de envio para em teoria dar tempo ao servidor para processar o pacote antes de um novo pacote ser enviado.
+Arquivos são geralmente enviados via TCP, a partir de protocolos como FTP (antigamente era comum que se a conexão caísse durante o download o arquivo deveria ser enviado todo novamente). Aplicações de torrent fatiam grandes arquivos em blocos menores, a informação sobre como esses blocos estão organizados é enviada e os blocos podem ser transmitidos em qualquer ordem, a partir de qualquer fonte. Mesmo o torrent tendo essa flexibilidade sobre a ordem de envio ele ainda utiliza o TCP.
